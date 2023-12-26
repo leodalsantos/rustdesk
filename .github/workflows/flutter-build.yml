@@ -219,6 +219,14 @@ jobs:
         run: |
           BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
 
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-artifacts
+          path: |
+            ./SignOutput/rustdesk-*.msi
+            ./SignOutput/rustdesk-*.exe
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -361,6 +369,12 @@ jobs:
         run: |
           BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput/
 
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.exe
+          path: ./SignOutput/rustdesk-*.exe
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -432,6 +446,12 @@ jobs:
           for name in rustdesk*??.dmg; do
               mv "$name" "${name%%.dmg}-aarch64.dmg"
           done
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-${{ env.VERSION }}-MacOS-${{ matrix.job.arch }}-DMG-package
+          path: rustdesk*-${{ matrix.job.arch }}.dmg
 
       - name: Publish DMG package
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -1083,12 +1103,18 @@ jobs:
           # override default build-tools version (29.0.3) -- optional
           BUILD_TOOLS_VERSION: "30.0.2"
 
-      - name: Upload Artifacts
+      - name: Upload Signed Artifacts
         if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@master
         with:
           name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
           path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
+
+      - name: Upload Unsigned Artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-unsigned.apk
+          path: signed-apk/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
 
       - name: Publish signed apk package
         if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
