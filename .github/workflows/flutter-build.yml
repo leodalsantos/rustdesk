@@ -175,7 +175,7 @@ jobs:
           path: "./rustdesk"
 
       - name: Upload unsigned
-        if: env.UPLOAD_ARTIFACT == 'true'
+        # if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@master
         with:
           name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
@@ -190,7 +190,7 @@ jobs:
 
       - name: Build self-extracted executable
         shell: bash
-        if: env.UPLOAD_ARTIFACT == 'true'
+        # if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           sed -i '/dpiAware/d' res/manifest.xml
           pushd ./libs/portable
@@ -204,7 +204,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Build msi
-        if: env.UPLOAD_ARTIFACT == 'true'
+        # if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           pushd ./res/msi
           python preprocess.py --arp -d ../../rustdesk
@@ -242,7 +242,7 @@ jobs:
     name: ${{ matrix.job.target }} (${{ matrix.job.os }})
     runs-on: ${{ matrix.job.os }}
     # Temporarily disable this action due to additional test is needed.
-    # if: false
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -463,7 +463,8 @@ jobs:
             rustdesk*-aarch64.dmg
 
   build-rustdesk-ios:
-    if: ${{ inputs.upload-artifact }}
+    if: False
+    # if: ${{ inputs.upload-artifact }}
     name: build rustdesk ios ipa
     runs-on: ${{ matrix.job.os }}
     strategy:
@@ -567,7 +568,7 @@ jobs:
       #       flutter/build/ios/ipa/*.ipa
 
   build-rustdesk-ios-selfhost:
-    #if: ${{ inputs.upload-artifact }}
+    # if: ${{ inputs.upload-artifact }}
     if: false
     runs-on: [self-hosted, macOS, ARM64]
     strategy:
@@ -623,6 +624,7 @@ jobs:
       #       flutter/build/ios/ipa/*.ipa
 
   build-for-macOS:
+    if: False
     name: ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.os }}
     strategy:
@@ -758,7 +760,7 @@ jobs:
           ./build.py --flutter --hwcodec ${{ matrix.job.extra-build-args }}
 
       - name: create unsigned dmg
-        if: env.UPLOAD_ARTIFACT == 'true'
+        # if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           CREATE_DMG="$(command -v create-dmg)"
           CREATE_DMG="$(readlink -f "$CREATE_DMG")"
@@ -766,7 +768,7 @@ jobs:
           create-dmg --icon "RustDesk.app" 200 190 --hide-extension "RustDesk.app" --window-size 800 400 --app-drop-link 600 185 rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg ./flutter/build/macos/Build/Products/Release/RustDesk.app
 
       - name: Upload unsigned macOS app
-        if: env.UPLOAD_ARTIFACT == 'true'
+        # if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@master
         with:
           name: rustdesk-unsigned-macos-${{ matrix.job.arch }}
@@ -791,7 +793,7 @@ jobs:
           rcodesign notary-submit --api-key-path ${{ github.workspace }}/rustdesk.json  --staple rustdesk-${{ env.VERSION }}.dmg
 
       - name: Rename rustdesk
-        if: env.UPLOAD_ARTIFACT == 'true'
+        # if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           for name in rustdesk*??.dmg; do
               mv "$name" "${name%%.dmg}-${{ matrix.job.arch }}.dmg"
@@ -808,22 +810,22 @@ jobs:
 
   publish_unsigned:
     needs:
-      - build-for-macOS
+      # - build-for-macOS
       - build-for-windows-flutter
     runs-on: ubuntu-latest
-    if: ${{ inputs.upload-artifact }}
+    # if: ${{ inputs.upload-artifact }}
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@master
-        with:
-          name: rustdesk-unsigned-macos-x86_64
-          path: ./
+      # - name: Download artifacts
+      #   uses: actions/download-artifact@master
+      #   with:
+      #     name: rustdesk-unsigned-macos-x86_64
+      #     path: ./
 
-      - name: Download Artifacts
-        uses: actions/download-artifact@master
-        with:
-          name: rustdesk-unsigned-macos-aarch64
-          path: ./
+      # - name: Download Artifacts
+      #   uses: actions/download-artifact@master
+      #   with:
+      #     name: rustdesk-unsigned-macos-aarch64
+      #     path: ./
 
       - name: Download Artifacts
         uses: actions/download-artifact@master
@@ -833,9 +835,16 @@ jobs:
 
       - name: Combine unsigned app
         run: |
-          tar czf rustdesk-${{ env.VERSION }}-unsigned.tar.gz *.dmg windows-x86_64
+          tar czf rustdesk-${{ env.VERSION }}-unsigned.tar.gz windows-x86_64
+
+      - name: Upload unsigned app
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-${{ env.VERSION }}-combined-unsigned
+          path: rustdesk-${{ env.VERSION }}-unsigned.tar.gz
 
       - name: Publish unsigned app
+        if: env.UPLOAD_ARTIFACT == 'true'
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
@@ -1104,7 +1113,7 @@ jobs:
           BUILD_TOOLS_VERSION: "30.0.2"
 
       - name: Upload Signed Artifacts
-        if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
+        if: env.ANDROID_SIGNING_KEY != null # && env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@master
         with:
           name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
@@ -1137,7 +1146,7 @@ jobs:
   build-rustdesk-android-universal:
     needs: [build-rustdesk-android]
     name: build rustdesk android universal apk
-    if: ${{ inputs.upload-artifact }}
+    # if: ${{ inputs.upload-artifact }}
     runs-on: ubuntu-20.04
     env:
       reltype: release
@@ -1285,12 +1294,18 @@ jobs:
           # override default build-tools version (29.0.3) -- optional
           BUILD_TOOLS_VERSION: "30.0.2"
 
-      - name: Upload Artifacts
-        if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
+      - name: Upload Signed Artifacts
+        if: env.ANDROID_SIGNING_KEY != null # && env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@master
         with:
-          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
+          name: rustdesk-${{ env.VERSION }}-universal.apk
           path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
+
+      - name: Upload Unsigned Artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-${{ env.VERSION }}-universal-unsigned.apk
+          path: signed-apk/rustdesk-${{ env.VERSION }}-universal${{ env.suffix }}.apk
 
       - name: Publish signed apk package
         if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
@@ -1327,14 +1342,14 @@ jobs:
               deb_arch: amd64,
               vcpkg-triplet: x64-linux,
             }
-          - {
-              arch: aarch64,
-              target: aarch64-unknown-linux-gnu,
-              distro: ubuntu18.04,
-              on: [self-hosted, Linux, ARM64],
-              deb_arch: arm64,
-              vcpkg-triplet: arm64-linux,
-            }
+          # - {
+          #     arch: aarch64,
+          #     target: aarch64-unknown-linux-gnu,
+          #     distro: ubuntu18.04,
+          #     on: [self-hosted, Linux, ARM64],
+          #     deb_arch: arm64,
+          #     vcpkg-triplet: arm64-linux,
+          #   }
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
@@ -1595,7 +1610,7 @@ jobs:
 
       - name: Upload deb
         uses: actions/upload-artifact@master
-        if: env.UPLOAD_ARTIFACT == 'true'
+        # if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
           path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.deb
@@ -1604,7 +1619,8 @@ jobs:
       # old arch image does not make sense for arch since it is "arch" which always update to date
       # and failed to makepkg arm64 on x86_64
       - name: Patch archlinux PKGBUILD
-        if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
+        if: False
+        # if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
         run: |
           sed -i "s/x86_64/${{ matrix.job.arch }}/g" res/PKGBUILD
           if [[ "${{ matrix.job.arch }}" == "aarch64" ]]; then
@@ -1612,15 +1628,17 @@ jobs:
           fi
 
       - name: Build archlinux package
-        if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
+        if: False
+        # if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
         uses: rustdesk-org/arch-makepkg-action@master
         with:
           packages:
           scripts: |
             cd res && HBB=`pwd`/.. FLUTTER=1 makepkg -f
 
-      - name: Publish archlinux package
-        if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
+      - name: Publish archlinux package\
+        if: False
+        # if: matrix.job.arch == 'x86_64' && env.UPLOAD_ARTIFACT == 'true'
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
@@ -1629,7 +1647,8 @@ jobs:
             res/rustdesk-${{ env.VERSION }}*.zst
 
   build-rustdesk-linux-sciter:
-    if: ${{ inputs.upload-artifact }}
+    if: False
+    # if: ${{ inputs.upload-artifact }}
     needs: build-rustdesk-linux # not for dep, just make it run later for parallelism
     runs-on: ${{ matrix.job.on }}
     name: build-rustdesk-linux-sciter ${{ matrix.job.target }}
@@ -1846,13 +1865,13 @@ jobs:
     name: Build appimage ${{ matrix.job.target }}
     needs: [build-rustdesk-linux]
     runs-on: ubuntu-20.04
-    if: ${{ inputs.upload-artifact }}
+    # if: ${{ inputs.upload-artifact }}
     strategy:
       fail-fast: false
       matrix:
         job:
           - { target: x86_64-unknown-linux-gnu, arch: x86_64 }
-          - { target: aarch64-unknown-linux-gnu, arch: aarch64 }
+          # - { target: aarch64-unknown-linux-gnu, arch: aarch64 }
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -1883,6 +1902,12 @@ jobs:
           pushd appimage
           sudo appimage-builder --skip-tests --recipe ./AppImageBuilder-${{ matrix.job.arch }}.yml
 
+      - name: Upload appimage package
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-${{ env.VERSION }}-appimage
+          path: ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
+
       - name: Publish appimage package
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: softprops/action-gh-release@v1
@@ -1893,12 +1918,13 @@ jobs:
             ./appimage/rustdesk-${{ env.VERSION }}-*.AppImage
 
   build-flatpak:
+    if: False
     name: Build flatpak ${{ matrix.job.target }}${{ matrix.job.suffix }}
     needs:
       - build-rustdesk-linux
       - build-rustdesk-linux-sciter
     runs-on: ${{ matrix.job.on }}
-    if: ${{ inputs.upload-artifact }}
+    # if: ${{ inputs.upload-artifact }}
     strategy:
       fail-fast: false
       matrix:
